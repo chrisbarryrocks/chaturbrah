@@ -8,7 +8,6 @@ interface StreamPreviewVideoProps {
 
 type PreviewState = 'loading' | 'captured' | 'failed'
 
-const REFRESH_INTERVAL_MS = 30_000
 const CAPTURE_TIMEOUT_MS = 15_000
 
 /**
