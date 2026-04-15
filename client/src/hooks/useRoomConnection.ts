@@ -15,9 +15,17 @@ export interface RoomConnectionState {
   room: Room | null
   remoteParticipant: RemoteParticipant | null
   hasRemoteVideo: boolean
+  viewerCount: number
   error: string | null
   connect: () => Promise<Room | null>
   disconnect: () => Promise<void>
+}
+
+function countViewers(r: Room, selfIsViewer: boolean): number {
+  const remoteViewers = Array.from(r.remoteParticipants.values()).filter(p =>
+    p.identity.startsWith('viewer-'),
+  ).length
+  return remoteViewers + (selfIsViewer ? 1 : 0)
 }
 
 export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectionState {
@@ -25,8 +33,10 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
   const [room, setRoom] = useState<Room | null>(null)
   const [remoteParticipant, setRemoteParticipant] = useState<RemoteParticipant | null>(null)
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false)
+  const [viewerCount, setViewerCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const roomRef = useRef<Room | null>(null)
+  const isViewer = role === 'viewer'
 
   const checkRemoteVideo = useCallback((r: Room) => {
     for (const participant of r.remoteParticipants.values()) {
@@ -40,8 +50,6 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
     setHasRemoteVideo(false)
   }, [])
 
-  // Returns the Room instance directly so callers can use it immediately
-  // without waiting for React state to flush.
   const connect = useCallback(async (): Promise<Room | null> => {
     if (appState === 'connecting' || appState === 'connected') return roomRef.current
     setAppState('connecting')
@@ -60,21 +68,35 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
         } else if (state === ConnectionState.Disconnected) {
           setAppState('disconnected')
           setHasRemoteVideo(false)
+          setViewerCount(0)
         }
       })
 
-      newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-        setRemoteParticipant(participant)
+      newRoom.on(RoomEvent.ParticipantConnected, () => {
+        const remaining = Array.from(newRoom.remoteParticipants.values())
+        // Update the broadcaster video participant ref
+        const broadcaster = remaining.find(p => p.identity.startsWith('broadcaster-')) ?? null
+        if (broadcaster || remaining.length > 0) {
+          setRemoteParticipant(
+            remaining.find(p => p.identity.startsWith('broadcaster-')) ?? remaining[0] ?? null,
+          )
+        }
+        setViewerCount(countViewers(newRoom, isViewer))
       })
 
       newRoom.on(RoomEvent.ParticipantDisconnected, () => {
-        const remaining = Array.from(newRoom.remoteParticipants.values())[0] ?? null
-        setRemoteParticipant(remaining)
+        const remaining = Array.from(newRoom.remoteParticipants.values())
+        setRemoteParticipant(
+          remaining.find(p => p.identity.startsWith('broadcaster-')) ?? remaining[0] ?? null,
+        )
         checkRemoteVideo(newRoom)
+        setViewerCount(countViewers(newRoom, isViewer))
       })
 
       newRoom.on(RoomEvent.TrackSubscribed, (_track: RemoteTrack, pub: RemoteTrackPublication, participant: RemoteParticipant) => {
-        setRemoteParticipant(participant)
+        if (participant.identity.startsWith('broadcaster-')) {
+          setRemoteParticipant(participant)
+        }
         if (pub.kind === 'video') setHasRemoteVideo(true)
       })
 
@@ -86,14 +108,18 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
         setAppState('disconnected')
         setHasRemoteVideo(false)
         setRemoteParticipant(null)
+        setViewerCount(0)
       })
 
       await newRoom.connect(url, token)
       setRoom(newRoom)
 
-      const existing = Array.from(newRoom.remoteParticipants.values())[0] ?? null
-      setRemoteParticipant(existing)
+      const existing = Array.from(newRoom.remoteParticipants.values())
+      setRemoteParticipant(
+        existing.find(p => p.identity.startsWith('broadcaster-')) ?? existing[0] ?? null,
+      )
       checkRemoteVideo(newRoom)
+      setViewerCount(countViewers(newRoom, isViewer))
 
       return newRoom
     } catch (err) {
@@ -107,7 +133,7 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
       setAppState('error')
       return null
     }
-  }, [appState, role, checkRemoteVideo])
+  }, [appState, role, checkRemoteVideo, isViewer])
 
   const disconnect = useCallback(async () => {
     if (roomRef.current) {
@@ -117,6 +143,7 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
       setAppState('idle')
       setRemoteParticipant(null)
       setHasRemoteVideo(false)
+      setViewerCount(0)
     }
   }, [])
 
@@ -128,5 +155,5 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
     }
   }, [])
 
-  return { appState, room, remoteParticipant, hasRemoteVideo, error, connect, disconnect }
+  return { appState, room, remoteParticipant, hasRemoteVideo, viewerCount, error, connect, disconnect }
 }

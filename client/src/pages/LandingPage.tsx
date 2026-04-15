@@ -1,9 +1,7 @@
-import { useNavigate } from 'react-router-dom'
-import { PrimaryButton } from '../components/PrimaryButton'
+import { Link } from 'react-router-dom'
+import { ChaturbrahWordmark } from '../components/ChaturbrahWordmark'
 
 export function LandingPage() {
-  const navigate = useNavigate()
-
   return (
     <div className="min-h-screen bg-[var(--color-surface-900)] flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -13,39 +11,36 @@ export function LandingPage() {
               <span className="size-1.5 rounded-full bg-[var(--color-live)] animate-pulse" />
               Live Streaming
             </div>
-            <h1 className="text-5xl sm:text-6xl font-bold text-white tracking-tight leading-none">
-              Chatur<span className="text-[var(--color-accent-400)]">brah</span>
-            </h1>
+            <div className="flex justify-center">
+              <ChaturbrahWordmark variant="hero" linkToHome={false} />
+            </div>
             <p className="text-[#8b8ba0] text-lg leading-relaxed">
-              Go live and hang with your brahs in real time.
+              a place to <span className="text-[#F5C400] font-semibold">chat</span> with ur{' '}
+              <span className="text-[#F5C400] font-semibold">brahs</span>
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <PrimaryButton
-              size="lg"
-              variant="accent"
-              onClick={() => navigate('/watch')}
-              className="w-full sm:w-auto"
+            <Link
+              to="/watch"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-lg font-medium cursor-pointer transition-all duration-150 active:scale-[0.97] px-6 py-3 text-base bg-[var(--color-accent-500)] hover:bg-[var(--color-accent-600)] text-white"
             >
               <EyeIcon />
               Watch Stream
-            </PrimaryButton>
-            <PrimaryButton
-              size="lg"
-              variant="ghost"
-              onClick={() => navigate('/broadcast')}
-              className="w-full sm:w-auto"
+            </Link>
+            <Link
+              to="/broadcast"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-lg font-medium cursor-pointer transition-all duration-150 active:scale-[0.97] px-6 py-3 text-base bg-[var(--color-surface-600)] hover:bg-[var(--color-surface-500)] text-[#c4c4d0] border border-[var(--color-border)]"
             >
               <RadioIcon />
               Start Broadcasting
-            </PrimaryButton>
+            </Link>
           </div>
         </div>
       </div>
 
-      <footer className="py-6 text-center text-[#4a4a5a] text-xs border-t border-[var(--color-border)]">
-        Chaturbrah v1 &mdash; powered by LiveKit
+      <footer className="py-6 text-center text-xs border-t" style={{ borderColor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.15)' }}>
+        Chaturbrah &mdash; powered by <span style={{ color: 'rgba(255,255,255,0.25)' }}>LiveKit</span>
       </footer>
     </div>
   )

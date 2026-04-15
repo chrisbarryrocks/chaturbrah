@@ -27,7 +27,8 @@ router.post('/token', async (req: Request, res: Response) => {
     return
   }
 
-  const identity = `${role}-${Date.now()}`
+  const suffix = Math.random().toString(36).slice(2, 8)
+  const identity = `${role}-${Date.now()}-${suffix}`
   const token = await createToken({
     apiKey,
     apiSecret,

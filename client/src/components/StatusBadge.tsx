@@ -8,11 +8,11 @@ interface BadgeProps {
 export function LiveBadge({ className }: BadgeProps) {
   return (
     <span className={clsx(
-      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
-      'bg-[var(--color-live-bg)] text-[var(--color-live)] border border-[var(--color-live)]/20',
+      'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold tracking-wider uppercase',
+      'bg-[var(--color-live)] text-white shadow-[0_0_8px_rgba(34,197,94,0.35)]',
       className,
     )}>
-      <span className="size-1.5 rounded-full bg-[var(--color-live)] animate-pulse" />
+      <span className="size-1.5 rounded-full bg-white/80 animate-pulse" />
       LIVE
     </span>
   )
@@ -26,25 +26,29 @@ export function ConnectionBadge({ quality, className }: ConnectionBadgeProps) {
   const config = {
     good: {
       label: 'Good',
-      color: 'bg-[var(--color-live-bg)] text-[var(--color-live)] border-[var(--color-live)]/20',
+      style: 'bg-[var(--color-live-bg)] text-[var(--color-live)]',
+      border: 'border-[var(--color-live-border)]',
       dot: 'bg-[var(--color-live)]',
     },
     unstable: {
       label: 'Unstable',
-      color: 'bg-[var(--color-unstable-bg)] text-[var(--color-unstable)] border-[var(--color-unstable)]/20',
+      style: 'bg-[var(--color-unstable-bg)] text-[var(--color-unstable)]',
+      border: 'border-[rgba(245,158,11,0.25)]',
       dot: 'bg-[var(--color-unstable)]',
     },
     reconnecting: {
       label: 'Reconnecting',
-      color: 'bg-[var(--color-reconnecting-bg)] text-[var(--color-reconnecting)] border-[var(--color-reconnecting)]/20',
+      style: 'bg-[var(--color-reconnecting-bg)] text-[var(--color-reconnecting)]',
+      border: 'border-[rgba(239,68,68,0.25)]',
       dot: 'bg-[var(--color-reconnecting)] animate-pulse',
     },
   }[quality]
 
   return (
     <span className={clsx(
-      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border',
-      config.color,
+      'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold border',
+      config.style,
+      config.border,
       className,
     )}>
       <span className={clsx('size-1.5 rounded-full', config.dot)} />
@@ -61,15 +65,24 @@ export function LatencyBadge({ level, className }: LatencyBadgeProps) {
   if (level === 'unknown') return null
 
   const config = {
-    low: { label: 'Low delay', color: 'text-[var(--color-live)] bg-[var(--color-live-bg)] border-[var(--color-live)]/20' },
-    medium: { label: 'Medium delay', color: 'text-[var(--color-unstable)] bg-[var(--color-unstable-bg)] border-[var(--color-unstable)]/20' },
-    high: { label: 'High delay', color: 'text-[var(--color-reconnecting)] bg-[var(--color-reconnecting-bg)] border-[var(--color-reconnecting)]/20' },
+    low: {
+      label: 'Low delay',
+      style: 'bg-[var(--color-live-bg)] text-[var(--color-live)] border-[var(--color-live-border)]',
+    },
+    medium: {
+      label: 'Med delay',
+      style: 'bg-[var(--color-unstable-bg)] text-[var(--color-unstable)] border-[rgba(245,158,11,0.25)]',
+    },
+    high: {
+      label: 'High delay',
+      style: 'bg-[var(--color-reconnecting-bg)] text-[var(--color-reconnecting)] border-[rgba(239,68,68,0.25)]',
+    },
   }[level]
 
   return (
     <span className={clsx(
-      'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border',
-      config.color,
+      'inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold border',
+      config.style,
       className,
     )}>
       {config.label}

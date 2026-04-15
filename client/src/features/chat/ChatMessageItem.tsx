@@ -1,4 +1,3 @@
-import { clsx } from 'clsx'
 import { formatTime } from '../../utils/chat'
 import type { ChatMessage } from '../../types'
 
@@ -9,28 +8,27 @@ interface ChatMessageItemProps {
 
 export function ChatMessageItem({ message, isOwn }: ChatMessageItemProps) {
   const isBroadcaster = message.senderRole === 'broadcaster'
+  const displayName = message.senderName || (isBroadcaster ? 'Streamer' : 'Viewer')
 
   return (
-    <div className={clsx('flex flex-col gap-0.5', isOwn && 'items-end')}>
-      <div className={clsx('flex items-baseline gap-2', isOwn && 'flex-row-reverse')}>
-        <span className={clsx(
-          'text-xs font-semibold',
-          isBroadcaster && 'text-[var(--color-accent-400)]',
-          !isBroadcaster && isOwn && 'text-[#a0a0b0]',
-          !isBroadcaster && !isOwn && 'text-[#7070a0]',
-        )}>
-          {isBroadcaster ? '🎙 Streamer' : isOwn ? 'You' : 'Viewer'}
+    <div className="flex flex-col gap-0">
+      <div className="flex items-baseline gap-1.5">
+        <span className={[
+          'font-semibold text-xs shrink-0',
+          isBroadcaster ? 'text-[#F5C400]' : isOwn ? 'text-white/60' : 'text-white/45',
+        ].join(' ')}>
+          {displayName}
         </span>
-        <span className="text-[10px] text-[#4a4a5a]">{formatTime(message.sentAt)}</span>
+        <span className="text-[10px] text-white/20 font-mono">
+          {formatTime(message.sentAt)}
+        </span>
       </div>
-      <div className={clsx(
-        'max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed break-words',
-        isBroadcaster && 'bg-[var(--color-accent-500)]/15 text-[#e2e2ea] border border-[var(--color-accent-500)]/20',
-        !isBroadcaster && isOwn && 'bg-[var(--color-surface-500)] text-[#e2e2ea]',
-        !isBroadcaster && !isOwn && 'bg-[var(--color-surface-600)] text-[#c4c4d0]',
-      )}>
+      <p className={[
+        'text-sm break-words leading-relaxed',
+        isBroadcaster ? 'text-white/90' : 'text-white/70',
+      ].join(' ')}>
         {message.text}
-      </div>
+      </p>
     </div>
   )
 }

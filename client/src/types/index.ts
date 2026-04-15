@@ -16,6 +16,7 @@ export interface ChatMessage {
   id: string
   senderId: string
   senderRole: 'broadcaster' | 'viewer'
+  senderName: string
   text: string
   sentAt: number
 }

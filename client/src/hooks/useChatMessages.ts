@@ -12,6 +12,7 @@ export function useChatMessages(
   room: Room | null,
   senderRole: 'broadcaster' | 'viewer',
   senderId: string,
+  senderName: string,
 ): ChatState {
   const [messages, setMessages] = useState<ChatMessage[]>([])
 
@@ -35,6 +36,7 @@ export function useChatMessages(
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       senderId,
       senderRole,
+      senderName,
       text: text.trim(),
       sentAt: Date.now(),
     }
@@ -42,7 +44,7 @@ export function useChatMessages(
     const bytes = encodePayload({ type: 'chat', message })
     void room.localParticipant.publishData(bytes, { reliable: true })
     setMessages(prev => [...prev, message])
-  }, [room, senderId, senderRole])
+  }, [room, senderId, senderRole, senderName])
 
   return { messages, sendMessage }
 }
