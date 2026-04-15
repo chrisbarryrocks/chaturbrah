@@ -38,7 +38,7 @@ function countViewers(r: Room, selfIsViewer: boolean): number {
   return remoteViewers + (selfIsViewer ? 1 : 0)
 }
 
-export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectionState {
+export function useRoomConnection(role: 'broadcaster' | 'viewer', roomName?: string): RoomConnectionState {
   const [appState, setAppState] = useState<AppState>('idle')
   const [room, setRoom] = useState<Room | null>(null)
   const [remoteParticipant, setRemoteParticipant] = useState<RemoteParticipant | null>(null)
@@ -67,7 +67,8 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
     setError(null)
 
     try {
-      const { token, url } = await fetchToken(role)
+      const resolvedRoom = roomName ?? 'chaturbrah-main'
+      const { token, url } = await fetchToken(role, resolvedRoom)
       const newRoom = new Room()
       roomRef.current = newRoom
 
@@ -151,7 +152,7 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
       setAppState('error')
       return null
     }
-  }, [appState, role, checkRemoteVideo, isViewer])
+  }, [appState, role, roomName, checkRemoteVideo, isViewer])
 
   const disconnect = useCallback(async () => {
     if (roomRef.current) {

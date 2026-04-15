@@ -10,6 +10,8 @@ interface ChatPanelProps {
   role: 'broadcaster' | 'viewer'
   isConnected: boolean
   onToggleCollapse?: () => void
+  /** If set, replaces the composer with an inline username prompt */
+  onRequestUsername?: () => void
 }
 
 export function ChatPanel({
@@ -19,6 +21,7 @@ export function ChatPanel({
   role,
   isConnected,
   onToggleCollapse,
+  onRequestUsername,
 }: ChatPanelProps) {
   const { messages, sendMessage } = useChatMessages(room, role, identity, senderName)
 
@@ -59,7 +62,25 @@ export function ChatPanel({
       </div>
 
       <ChatMessageList messages={messages} localSenderId={identity} />
-      <ChatComposer onSend={sendMessage} disabled={!isConnected} />
+      {onRequestUsername ? (
+        <div
+          className="flex-shrink-0 px-3 py-3"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <button
+            onClick={onRequestUsername}
+            className="w-full rounded-lg px-3.5 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors cursor-pointer text-left"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+            }}
+          >
+            Set a username to chat →
+          </button>
+        </div>
+      ) : (
+        <ChatComposer onSend={sendMessage} disabled={!isConnected} />
+      )}
     </div>
   )
 }

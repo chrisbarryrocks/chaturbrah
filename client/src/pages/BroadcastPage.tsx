@@ -1,13 +1,21 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Room } from 'livekit-client'
 import { AppLayout } from '../components/AppLayout'
+import { UsernameModal } from '../components/UsernameModal'
 import { BroadcasterControls } from '../features/broadcast/BroadcasterControls'
 import { ChatPanel } from '../features/chat/ChatPanel'
 import { useRoomConnection } from '../hooks/useRoomConnection'
 import { useLatencyIndicator } from '../hooks/useLatencyIndicator'
+import { useUserProfile } from '../context/UserProfileContext'
+import { startStream, endStream } from '../lib/api'
 
 export function BroadcastPage() {
-  const { appState, room, viewerCount, hasRemoteBroadcaster, error, connect, disconnect } = useRoomConnection('broadcaster')
+  const { username } = useUserProfile()
+  const roomName = username ?? undefined
+
+  const { appState, room, viewerCount, hasRemoteBroadcaster, error, connect, disconnect } =
+    useRoomConnection('broadcaster', roomName)
+
   const [isStreaming, setIsStreaming] = useState(false)
   const latency = useLatencyIndicator(room, 'broadcaster')
   const [identity] = useState(() => `broadcaster-${Date.now()}`)
@@ -15,12 +23,32 @@ export function BroadcastPage() {
   connectRef.current = connect
   const didConnectRef = useRef(false)
 
+  // Only connect once we have a username (room name)
   useEffect(() => {
+    if (!username) return
     if (didConnectRef.current) return
     didConnectRef.current = true
     void connectRef.current()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [username])
+
+  const handleStreamingChange = useCallback(async (streaming: boolean) => {
+    setIsStreaming(streaming)
+    if (!username) return
+    if (streaming) {
+      try {
+        await startStream(username)
+      } catch {
+        // stream may already be registered — ignore conflict errors
+      }
+    } else {
+      try {
+        await endStream(username)
+      } catch {
+        // ignore if not found
+      }
+    }
+  }, [username])
 
   const handleGoLive = useCallback(async (): Promise<Room | null> => {
     return await connectRef.current()
@@ -28,10 +56,27 @@ export function BroadcastPage() {
 
   const handleEndStream = useCallback(async () => {
     await disconnect()
+    if (username) {
+      didConnectRef.current = false
+    }
     void connectRef.current()
-  }, [disconnect])
+  }, [disconnect, username])
 
   const isConnected = appState === 'connected' || appState === 'reconnecting'
+
+  // If no username, show blocking modal
+  if (!username) {
+    return (
+      <AppLayout>
+        <UsernameModal
+          canCancel={false}
+          onComplete={() => {
+            // Context update will re-render with username set
+          }}
+        />
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout>
@@ -42,6 +87,9 @@ export function BroadcastPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-white font-extrabold text-2xl tracking-tight">Broadcast</h1>
+              <p className="text-white/30 text-xs mt-0.5">
+                streaming as <span className="text-white/50 font-medium">{username}</span>
+              </p>
               {isStreaming && (
                 <span className="inline-flex items-center gap-1.5 text-white/30 text-xs mt-0.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -89,7 +137,7 @@ export function BroadcastPage() {
                 <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                 <path d="M12 9v4" /><path d="M12 17h.01" />
               </svg>
-              Someone is already broadcasting. Go Live is disabled until they end their stream.
+              Someone is already broadcasting in this room. Go Live is disabled until they end their stream.
             </div>
           )}
 
@@ -110,7 +158,7 @@ export function BroadcastPage() {
             appState={appState}
             onGoLive={handleGoLive}
             onEndStream={handleEndStream}
-            onStreamingChange={setIsStreaming}
+            onStreamingChange={handleStreamingChange}
             goLiveDisabled={hasRemoteBroadcaster}
           />
         </div>
@@ -124,7 +172,7 @@ export function BroadcastPage() {
             <ChatPanel
               room={room}
               identity={identity}
-              senderName="Streamer"
+              senderName={username}
               role="broadcaster"
               isConnected={isConnected}
             />

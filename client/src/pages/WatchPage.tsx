@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useParams } from 'react-router-dom'
 import { AppLayout } from '../components/AppLayout'
+import { UsernameModal } from '../components/UsernameModal'
 import { ViewerPlayer } from '../features/watch/ViewerPlayer'
 import { ViewerStatusBar } from '../features/watch/ViewerStatusBar'
 import { OfflineState } from '../features/watch/OfflineState'
@@ -10,32 +12,54 @@ import { useRoomConnection } from '../hooks/useRoomConnection'
 import { useConnectionStatus } from '../hooks/useConnectionStatus'
 import { useLatencyIndicator } from '../hooks/useLatencyIndicator'
 import { useLiveTimer } from '../hooks/useLiveTimer'
+import { useUserProfile } from '../context/UserProfileContext'
+import { heartbeatStream } from '../lib/api'
 import type { StreamState } from '../types'
 
-function randomViewerName() {
-  const n = Math.floor(Math.random() * 9000) + 1000
-  return `Viewer ${n}`
+function makeSessionId() {
+  return `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 export function WatchPage() {
+  const { username: streamerUsername = 'unknown' } = useParams<{ username: string }>()
+  const { username: myUsername } = useUserProfile()
+
   const { appState, room, remoteParticipant, hasRemoteVideo, viewerCount, error, connect, disconnect } =
-    useRoomConnection('viewer')
+    useRoomConnection('viewer', streamerUsername)
   const connectionQuality = useConnectionStatus(room)
   const latency = useLatencyIndicator(room, 'viewer')
-  const [identity] = useState(() => `viewer-${Date.now()}`)
-  const [viewerName] = useState(randomViewerName)
+
+  const [identity] = useState(() => `viewer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`)
+  const senderName = myUsername ?? `Viewer ${Math.floor(Math.random() * 9000) + 1000}`
+
   const [streamState, setStreamState] = useState<StreamState>('offline')
   const [showChat, setShowChat] = useState(true)
+  const [showUsernameModal, setShowUsernameModal] = useState(false)
   const elapsedTime = useLiveTimer(streamState === 'live')
   const playerContainerRef = useRef<HTMLDivElement>(null)
   const didConnectRef = useRef(false)
+  const sessionIdRef = useRef(makeSessionId())
 
+  // Connect once on mount
   useEffect(() => {
     if (didConnectRef.current) return
     didConnectRef.current = true
     void connect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Viewer heartbeat
+  useEffect(() => {
+    const sessionId = sessionIdRef.current
+    const isConnected = appState === 'connected' || appState === 'reconnecting'
+    if (!isConnected) return
+
+    void heartbeatStream(streamerUsername, sessionId).catch(() => {})
+    const interval = setInterval(() => {
+      void heartbeatStream(streamerUsername, sessionId).catch(() => {})
+    }, 20_000)
+    return () => clearInterval(interval)
+  }, [appState, streamerUsername])
 
   useEffect(() => {
     if (hasRemoteVideo) {
@@ -114,7 +138,9 @@ export function WatchPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <h1 className="text-white font-bold text-base leading-tight truncate">Live on Chaturbrah</h1>
+                  <h1 className="text-white font-bold text-base leading-tight truncate">
+                    {streamerUsername}
+                  </h1>
                   {elapsedTime && (
                     <span className="flex-shrink-0 text-[11px] text-white/30 font-mono bg-white/5 px-2 py-0.5 rounded-md">
                       {elapsedTime}
@@ -155,10 +181,11 @@ export function WatchPage() {
             <ChatPanel
               room={room}
               identity={identity}
-              senderName={viewerName}
+              senderName={senderName}
               role="viewer"
               isConnected={appState === 'connected' || isReconnecting}
               onToggleCollapse={() => setShowChat(false)}
+              onRequestUsername={!myUsername ? () => setShowUsernameModal(true) : undefined}
             />
           </div>
         ) : (
@@ -181,6 +208,14 @@ export function WatchPage() {
           </div>
         )}
       </div>
+
+      {showUsernameModal && (
+        <UsernameModal
+          canCancel
+          onComplete={() => setShowUsernameModal(false)}
+          onCancel={() => setShowUsernameModal(false)}
+        />
+      )}
     </AppLayout>
   )
 }
