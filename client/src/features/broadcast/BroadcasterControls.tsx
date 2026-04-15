@@ -35,6 +35,12 @@ export function BroadcasterControls({
   const videoTrackRef = useRef<LocalVideoTrack | null>(null)
   const audioTrackRef = useRef<LocalAudioTrack | null>(null)
   const liveRoomRef = useRef<Room | null>(null)
+  const localStreamRef = useRef<MediaStream | null>(null)
+
+  // Keep ref in sync so the unmount cleanup always has the latest stream
+  useEffect(() => {
+    localStreamRef.current = localStream
+  }, [localStream])
 
   const startPreview = useCallback(async () => {
     try {
@@ -49,7 +55,10 @@ export function BroadcasterControls({
   useEffect(() => {
     void startPreview()
     return () => {
-      localStream?.getTracks().forEach(t => t.stop())
+      // Stop all media on unmount (navigation away, etc.)
+      localStreamRef.current?.getTracks().forEach(t => t.stop())
+      videoTrackRef.current?.stop()
+      audioTrackRef.current?.stop()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
