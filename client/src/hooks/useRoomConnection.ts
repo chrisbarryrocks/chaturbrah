@@ -15,10 +15,17 @@ export interface RoomConnectionState {
   room: Room | null
   remoteParticipant: RemoteParticipant | null
   hasRemoteVideo: boolean
+  hasRemoteBroadcaster: boolean
   viewerCount: number
   error: string | null
   connect: () => Promise<Room | null>
   disconnect: () => Promise<void>
+}
+
+function checkRemoteBroadcaster(r: Room): boolean {
+  return Array.from(r.remoteParticipants.values()).some(p =>
+    p.identity.startsWith('broadcaster-'),
+  )
 }
 
 function countViewers(r: Room, selfIsViewer: boolean): number {
@@ -33,6 +40,7 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
   const [room, setRoom] = useState<Room | null>(null)
   const [remoteParticipant, setRemoteParticipant] = useState<RemoteParticipant | null>(null)
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false)
+  const [hasRemoteBroadcaster, setHasRemoteBroadcaster] = useState(false)
   const [viewerCount, setViewerCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const roomRef = useRef<Room | null>(null)
@@ -69,19 +77,17 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
           setAppState('disconnected')
           setHasRemoteVideo(false)
           setViewerCount(0)
+          setHasRemoteBroadcaster(false)
         }
       })
 
       newRoom.on(RoomEvent.ParticipantConnected, () => {
         const remaining = Array.from(newRoom.remoteParticipants.values())
-        // Update the broadcaster video participant ref
-        const broadcaster = remaining.find(p => p.identity.startsWith('broadcaster-')) ?? null
-        if (broadcaster || remaining.length > 0) {
-          setRemoteParticipant(
-            remaining.find(p => p.identity.startsWith('broadcaster-')) ?? remaining[0] ?? null,
-          )
-        }
+        setRemoteParticipant(
+          remaining.find(p => p.identity.startsWith('broadcaster-')) ?? remaining[0] ?? null,
+        )
         setViewerCount(countViewers(newRoom, isViewer))
+        setHasRemoteBroadcaster(checkRemoteBroadcaster(newRoom))
       })
 
       newRoom.on(RoomEvent.ParticipantDisconnected, () => {
@@ -91,6 +97,7 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
         )
         checkRemoteVideo(newRoom)
         setViewerCount(countViewers(newRoom, isViewer))
+        setHasRemoteBroadcaster(checkRemoteBroadcaster(newRoom))
       })
 
       newRoom.on(RoomEvent.TrackSubscribed, (_track: RemoteTrack, pub: RemoteTrackPublication, participant: RemoteParticipant) => {
@@ -109,6 +116,7 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
         setHasRemoteVideo(false)
         setRemoteParticipant(null)
         setViewerCount(0)
+        setHasRemoteBroadcaster(false)
       })
 
       await newRoom.connect(url, token)
@@ -120,6 +128,7 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
       )
       checkRemoteVideo(newRoom)
       setViewerCount(countViewers(newRoom, isViewer))
+      setHasRemoteBroadcaster(checkRemoteBroadcaster(newRoom))
 
       return newRoom
     } catch (err) {
@@ -155,5 +164,5 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
     }
   }, [])
 
-  return { appState, room, remoteParticipant, hasRemoteVideo, viewerCount, error, connect, disconnect }
+  return { appState, room, remoteParticipant, hasRemoteVideo, hasRemoteBroadcaster, viewerCount, error, connect, disconnect }
 }

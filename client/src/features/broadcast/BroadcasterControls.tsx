@@ -15,6 +15,7 @@ interface BroadcasterControlsProps {
   onGoLive: () => Promise<Room | null>
   onEndStream: () => Promise<void>
   onStreamingChange?: (isStreaming: boolean) => void
+  goLiveDisabled?: boolean
 }
 
 export function BroadcasterControls({
@@ -22,6 +23,7 @@ export function BroadcasterControls({
   onGoLive,
   onEndStream,
   onStreamingChange,
+  goLiveDisabled = false,
 }: BroadcasterControlsProps) {
   const [micEnabled, setMicEnabled] = useState(true)
   const [camEnabled, setCamEnabled] = useState(true)
@@ -291,7 +293,7 @@ export function BroadcasterControls({
               size="md"
               loading={isConnecting}
               onClick={() => void handleGoLive()}
-              disabled={isConnecting || !!previewError}
+              disabled={isConnecting || !!previewError || goLiveDisabled}
               className="min-w-[110px]"
             >
               {isConnecting ? 'Connecting…' : 'Go Live'}

@@ -7,7 +7,7 @@ import { useRoomConnection } from '../hooks/useRoomConnection'
 import { useLatencyIndicator } from '../hooks/useLatencyIndicator'
 
 export function BroadcastPage() {
-  const { appState, room, viewerCount, error, connect, disconnect } = useRoomConnection('broadcaster')
+  const { appState, room, viewerCount, hasRemoteBroadcaster, error, connect, disconnect } = useRoomConnection('broadcaster')
   const [isStreaming, setIsStreaming] = useState(false)
   const latency = useLatencyIndicator(room, 'broadcaster')
   const [identity] = useState(() => `broadcaster-${Date.now()}`)
@@ -77,6 +77,22 @@ export function BroadcastPage() {
             </div>
           </div>
 
+          {/* Another broadcaster is already live */}
+          {hasRemoteBroadcaster && !isStreaming && (
+            <div className="rounded-lg px-4 py-3 text-sm flex items-start gap-2.5"
+              style={{
+                background: 'var(--color-unstable-bg)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                color: 'var(--color-unstable)',
+              }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" /><path d="M12 17h.01" />
+              </svg>
+              Someone is already broadcasting. Go Live is disabled until they end their stream.
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <div className="rounded-lg px-4 py-3 text-sm flex items-start gap-2.5"
@@ -95,6 +111,7 @@ export function BroadcastPage() {
             onGoLive={handleGoLive}
             onEndStream={handleEndStream}
             onStreamingChange={setIsStreaming}
+            goLiveDisabled={hasRemoteBroadcaster}
           />
         </div>
 
