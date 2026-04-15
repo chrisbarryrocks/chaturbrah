@@ -30,7 +30,7 @@ export function WatchPage() {
   const latency = useLatencyIndicator(room, 'viewer')
 
   const [identity] = useState(() => `viewer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`)
-  const senderName = myUsername ?? `Viewer ${Math.floor(Math.random() * 9000) + 1000}`
+  const [senderName] = useState(() => myUsername ?? `Viewer ${Math.floor(Math.random() * 9000) + 1000}`)
 
   const [streamState, setStreamState] = useState<StreamState>('offline')
   const [showChat, setShowChat] = useState(true)
@@ -186,6 +186,7 @@ export function WatchPage() {
               isConnected={appState === 'connected' || isReconnecting}
               onToggleCollapse={() => setShowChat(false)}
               onRequestUsername={!myUsername ? () => setShowUsernameModal(true) : undefined}
+              announceJoin={!!myUsername}
             />
           </div>
         ) : (

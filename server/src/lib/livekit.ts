@@ -1,6 +1,6 @@
 import { AccessToken } from 'livekit-server-sdk'
 
-export type TokenRole = 'broadcaster' | 'viewer'
+export type TokenRole = 'broadcaster' | 'viewer' | 'preview'
 
 interface TokenConfig {
   apiKey: string
@@ -21,6 +21,15 @@ export async function createToken(config: TokenConfig): Promise<string> {
       room: roomName,
       canPublish: true,
       canPublishData: true,
+      canSubscribe: true,
+    })
+  } else if (role === 'preview') {
+    // Subscribe-only, no data publish — invisible to viewer counts
+    token.addGrant({
+      roomJoin: true,
+      room: roomName,
+      canPublish: false,
+      canPublishData: false,
       canSubscribe: true,
     })
   } else {

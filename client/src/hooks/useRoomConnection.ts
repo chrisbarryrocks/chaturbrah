@@ -35,6 +35,7 @@ function countViewers(r: Room, selfIsViewer: boolean): number {
   const remoteViewers = Array.from(r.remoteParticipants.values()).filter(p =>
     p.identity.startsWith('viewer-'),
   ).length
+  // preview- participants are screenshot bots — exclude from count
   return remoteViewers + (selfIsViewer ? 1 : 0)
 }
 

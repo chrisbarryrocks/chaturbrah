@@ -13,8 +13,8 @@ router.get('/health', (_req: Request, res: Response) => {
 router.post('/token', async (req: Request, res: Response) => {
   const { role, roomName: requestedRoom } = req.body as { role?: string; roomName?: string }
 
-  if (role !== 'broadcaster' && role !== 'viewer') {
-    res.status(400).json({ error: 'role must be "broadcaster" or "viewer"' })
+  if (role !== 'broadcaster' && role !== 'viewer' && role !== 'preview') {
+    res.status(400).json({ error: 'role must be "broadcaster", "viewer", or "preview"' })
     return
   }
 

@@ -19,7 +19,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export async function fetchToken(role: 'broadcaster' | 'viewer', roomName: string): Promise<TokenResponse> {
+export async function fetchToken(role: 'broadcaster' | 'viewer' | 'preview', roomName: string): Promise<TokenResponse> {
   return apiFetch<TokenResponse>('/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

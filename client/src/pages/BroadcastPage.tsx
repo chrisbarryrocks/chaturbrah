@@ -175,6 +175,8 @@ export function BroadcastPage() {
               senderName={username}
               role="broadcaster"
               isConnected={isConnected}
+              isStreaming={isStreaming}
+              announceJoin
             />
           </div>
         </div>

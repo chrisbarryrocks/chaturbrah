@@ -15,7 +15,7 @@ export type LatencyLevel = 'low' | 'medium' | 'high' | 'unknown'
 export interface ChatMessage {
   id: string
   senderId: string
-  senderRole: 'broadcaster' | 'viewer'
+  senderRole: 'broadcaster' | 'viewer' | 'system'
   senderName: string
   text: string
   sentAt: number
@@ -30,5 +30,6 @@ export interface TokenResponse {
 
 export type DataMessagePayload =
   | { type: 'chat'; message: ChatMessage }
+  | { type: 'announce'; event: 'join' | 'stream-start' | 'stream-end'; displayName: string }
   | { type: 'ping'; ts: number }
   | { type: 'pong'; ts: number }

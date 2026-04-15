@@ -12,6 +12,10 @@ interface ChatPanelProps {
   onToggleCollapse?: () => void
   /** If set, replaces the composer with an inline username prompt */
   onRequestUsername?: () => void
+  /** Broadcaster passes this so stream-start/end system messages are sent */
+  isStreaming?: boolean
+  /** Whether to send a join announcement when connecting */
+  announceJoin?: boolean
 }
 
 export function ChatPanel({
@@ -22,8 +26,13 @@ export function ChatPanel({
   isConnected,
   onToggleCollapse,
   onRequestUsername,
+  isStreaming,
+  announceJoin,
 }: ChatPanelProps) {
-  const { messages, sendMessage } = useChatMessages(room, role, identity, senderName)
+  const { messages, sendMessage } = useChatMessages(room, role, identity, senderName, {
+    isStreaming,
+    announceJoin,
+  })
 
   return (
     <div

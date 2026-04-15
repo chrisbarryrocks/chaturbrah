@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Room, RoomEvent, Track } from 'livekit-client'
+import { Room, RoomEvent, Track, type RemoteTrackPublication } from 'livekit-client'
 import { fetchToken } from '../../lib/api'
 
 interface StreamPreviewVideoProps {
@@ -9,10 +9,11 @@ interface StreamPreviewVideoProps {
 type PreviewState = 'loading' | 'captured' | 'failed'
 
 const REFRESH_INTERVAL_MS = 30_000
+const CAPTURE_TIMEOUT_MS = 15_000
 
 /**
- * Briefly connects to a LiveKit room, captures a single video frame to a
- * canvas, then immediately disconnects. Re-captures every 30s.
+ * Briefly connects to a LiveKit room, captures one JPEG frame, then disconnects.
+ * Uses autoSubscribe:false + setSubscribed(true) so it opts in to only one track.
  */
 export function StreamPreviewVideo({ username }: StreamPreviewVideoProps) {
   const [screenshot, setScreenshot] = useState<string | null>(null)
@@ -23,69 +24,81 @@ export function StreamPreviewVideo({ username }: StreamPreviewVideoProps) {
     const room = new Room({ adaptiveStream: false, dynacast: false })
 
     try {
-      const { token, url } = await fetchToken('viewer', username)
-      if (!mountedRef.current) return
+      const { token, url } = await fetchToken('preview', username)
+      if (!mountedRef.current) { void room.disconnect(); return }
 
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('timeout'))
-        }, 12_000)
+        const timeout = setTimeout(() => reject(new Error('timeout')), CAPTURE_TIMEOUT_MS)
+        let captured = false
 
-        room.on(RoomEvent.TrackSubscribed, (track) => {
-          if (track.kind !== Track.Kind.Video) return
+        function capturePublication(pub: RemoteTrackPublication) {
+          if (captured || pub.kind !== Track.Kind.Video || !pub.track) return
+          captured = true
 
           const video = document.createElement('video')
           video.muted = true
           video.playsInline = true
-          track.attach(video)
+          pub.track.attach(video)
 
-          video.addEventListener('playing', () => {
+          const onPlaying = () => {
             try {
               const canvas = document.createElement('canvas')
               canvas.width = video.videoWidth || 640
               canvas.height = video.videoHeight || 360
               canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height)
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.75)
-
-              track.detach(video)
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+              pub.track?.detach(video)
               clearTimeout(timeout)
-              resolve()
-
               if (mountedRef.current && dataUrl.length > 1000) {
                 setScreenshot(dataUrl)
                 setState('captured')
               }
+              resolve()
             } catch {
               reject(new Error('canvas error'))
             }
-          }, { once: true })
+          }
 
+          video.addEventListener('playing', onPlaying, { once: true })
           void video.play().catch(() => {})
+        }
+
+        room.on(RoomEvent.TrackSubscribed, (_track, pub) => {
+          capturePublication(pub)
         })
 
-        room.connect(url, token, { autoSubscribe: true }).catch(reject)
+        room.connect(url, token, { autoSubscribe: false })
+          .then(() => {
+            if (!mountedRef.current) { reject(new Error('unmounted')); return }
+            // Subscribe to any video track already published
+            for (const participant of room.remoteParticipants.values()) {
+              for (const pub of participant.trackPublications.values()) {
+                if (pub.kind === Track.Kind.Video) {
+                  pub.setSubscribed(true)
+                  return
+                }
+              }
+            }
+            // Watch for future publishes
+            room.on(RoomEvent.TrackPublished, (pub) => {
+              if (pub.kind === Track.Kind.Video) pub.setSubscribed(true)
+            })
+          })
+          .catch(reject)
       })
     } catch {
-      if (mountedRef.current && state === 'loading') {
-        setState('failed')
-      }
+      if (mountedRef.current && state === 'loading') setState('failed')
     } finally {
-      void room.disconnect()
+      // Brief pause before disconnect to avoid triggering ICE renegotiation for other viewers
+      setTimeout(() => void room.disconnect(), 1000)
     }
   }
 
   useEffect(() => {
     mountedRef.current = true
     void captureFrame()
-
-    const interval = setInterval(() => {
-      if (mountedRef.current) void captureFrame()
-    }, REFRESH_INTERVAL_MS)
-
-    return () => {
-      mountedRef.current = false
-      clearInterval(interval)
-    }
+    // Single capture — no auto-refresh so we never disrupt other viewers
+    return () => { mountedRef.current = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username])
 

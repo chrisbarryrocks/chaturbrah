@@ -7,6 +7,18 @@ interface ChatMessageItemProps {
 }
 
 export function ChatMessageItem({ message, isOwn }: ChatMessageItemProps) {
+  if (message.senderRole === 'system') {
+    return (
+      <div className="flex items-center gap-2 my-1">
+        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+        <span className="text-[11px] text-white/30 italic shrink-0 select-none">
+          {message.text}
+        </span>
+        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+      </div>
+    )
+  }
+
   const isBroadcaster = message.senderRole === 'broadcaster'
   const displayName = message.senderName || (isBroadcaster ? 'Streamer' : 'Viewer')
 
