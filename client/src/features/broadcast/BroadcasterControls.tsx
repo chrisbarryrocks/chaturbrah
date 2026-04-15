@@ -6,7 +6,6 @@ import {
   type LocalVideoTrack,
   type LocalAudioTrack,
 } from 'livekit-client'
-import { clsx } from 'clsx'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { IconButton } from '../../components/IconButton'
 import type { AppState } from '../../types'
