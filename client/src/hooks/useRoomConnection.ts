@@ -23,9 +23,12 @@ export interface RoomConnectionState {
 }
 
 function checkRemoteBroadcaster(r: Room): boolean {
-  return Array.from(r.remoteParticipants.values()).some(p =>
-    p.identity.startsWith('broadcaster-'),
-  )
+  return Array.from(r.remoteParticipants.values()).some(p => {
+    if (!p.identity.startsWith('broadcaster-')) return false
+    return Array.from(p.trackPublications.values()).some(
+      pub => pub.kind === 'video' && pub.isSubscribed && pub.track,
+    )
+  })
 }
 
 function countViewers(r: Room, selfIsViewer: boolean): number {
@@ -104,11 +107,17 @@ export function useRoomConnection(role: 'broadcaster' | 'viewer'): RoomConnectio
         if (participant.identity.startsWith('broadcaster-')) {
           setRemoteParticipant(participant)
         }
-        if (pub.kind === 'video') setHasRemoteVideo(true)
+        if (pub.kind === 'video') {
+          setHasRemoteVideo(true)
+          setHasRemoteBroadcaster(checkRemoteBroadcaster(newRoom))
+        }
       })
 
       newRoom.on(RoomEvent.TrackUnsubscribed, (_track: RemoteTrack, pub: RemoteTrackPublication) => {
-        if (pub.kind === 'video') checkRemoteVideo(newRoom)
+        if (pub.kind === 'video') {
+          checkRemoteVideo(newRoom)
+          setHasRemoteBroadcaster(checkRemoteBroadcaster(newRoom))
+        }
       })
 
       newRoom.on(RoomEvent.Disconnected, () => {
