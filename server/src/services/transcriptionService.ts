@@ -2,7 +2,7 @@ import OpenAI from 'openai'
 import { toFile } from 'openai'
 import { debugLog } from '../lib/debug.js'
 
-const MIN_WORD_COUNT = 3
+const MIN_WORD_COUNT = 2
 
 let client: OpenAI | null = null
 

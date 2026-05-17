@@ -8,10 +8,12 @@ interface ChatMessageListProps {
 }
 
 export function ChatMessageList({ messages, localSenderId }: ChatMessageListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = listRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
   }, [messages])
 
   if (messages.length === 0) {
@@ -30,7 +32,7 @@ export function ChatMessageList({ messages, localSenderId }: ChatMessageListProp
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+    <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
       {messages.map(msg => (
         <ChatMessageItem
           key={msg.id}
@@ -38,7 +40,6 @@ export function ChatMessageList({ messages, localSenderId }: ChatMessageListProp
           isOwn={msg.senderId === localSenderId}
         />
       ))}
-      <div ref={bottomRef} />
     </div>
   )
 }

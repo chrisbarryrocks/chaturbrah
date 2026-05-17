@@ -4,7 +4,7 @@ import { encodePayload } from '../../utils/chat'
 import { sendAiChatterAudio } from '../../lib/api'
 import type { ChatMessage } from '../../types'
 
-const SPEECH_RMS_THRESHOLD = 0.05
+const SPEECH_RMS_THRESHOLD = 0.02
 const SPEECH_POLL_MS = 200
 const INTERVAL_MS = 8_000
 
