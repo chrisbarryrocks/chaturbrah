@@ -15,6 +15,7 @@ interface BroadcasterControlsProps {
   onGoLive: () => Promise<Room | null>
   onEndStream: () => Promise<void>
   onStreamingChange?: (isStreaming: boolean) => void
+  onAudioStreamReady?: (stream: MediaStream | null) => void
   goLiveDisabled?: boolean
 }
 
@@ -23,6 +24,7 @@ export function BroadcasterControls({
   onGoLive,
   onEndStream,
   onStreamingChange,
+  onAudioStreamReady,
   goLiveDisabled = false,
 }: BroadcasterControlsProps) {
   const [micEnabled, setMicEnabled] = useState(true)
@@ -86,6 +88,7 @@ export function BroadcasterControls({
       setMicEnabled(true)
       setIsStreaming(true)
       onStreamingChange?.(true)
+      onAudioStreamReady?.(new MediaStream([audioTrack.mediaStreamTrack]))
 
       const liveStream = new MediaStream([videoTrack.mediaStreamTrack])
       setLocalStream(liveStream)
@@ -111,6 +114,7 @@ export function BroadcasterControls({
     setPublishError(null)
     setIsStreaming(false)
     onStreamingChange?.(false)
+    onAudioStreamReady?.(null)
     await onEndStream()
     void startPreview()
   }

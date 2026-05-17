@@ -3,6 +3,7 @@ import express from 'express'
 import type { Request, Response, NextFunction } from 'express'
 import tokenRouter from './routes/token.js'
 import streamsRouter from './routes/streams.js'
+import aiChattersRouter from './routes/aiChatters.js'
 
 const app = express()
 const port = process.env['PORT'] ? parseInt(process.env['PORT'], 10) : 4000
@@ -24,6 +25,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use(express.json())
 app.use('/', tokenRouter)
 app.use('/', streamsRouter)
+app.use('/', aiChattersRouter)
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`)

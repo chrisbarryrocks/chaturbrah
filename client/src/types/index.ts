@@ -15,7 +15,7 @@ export type LatencyLevel = 'low' | 'medium' | 'high' | 'unknown'
 export interface ChatMessage {
   id: string
   senderId: string
-  senderRole: 'broadcaster' | 'viewer' | 'system'
+  senderRole: 'broadcaster' | 'viewer' | 'system' | 'ai-bot'
   senderName: string
   text: string
   sentAt: number

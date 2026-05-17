@@ -20,6 +20,7 @@ export function ChatMessageItem({ message, isOwn }: ChatMessageItemProps) {
   }
 
   const isBroadcaster = message.senderRole === 'broadcaster'
+  const isAiBot = message.senderRole === 'ai-bot'
   const displayName = message.senderName || (isBroadcaster ? 'Streamer' : 'Viewer')
 
   return (
@@ -31,6 +32,18 @@ export function ChatMessageItem({ message, isOwn }: ChatMessageItemProps) {
         ].join(' ')}>
           {displayName}
         </span>
+        {isAiBot && (
+          <span
+            className="text-[9px] font-semibold px-1 py-px rounded shrink-0 tracking-wide"
+            style={{
+              background: 'rgba(139,92,246,0.15)',
+              border: '1px solid rgba(139,92,246,0.25)',
+              color: '#a78bfa',
+            }}
+          >
+            AI
+          </span>
+        )}
         <span className="text-[10px] text-white/20 font-mono">
           {formatTime(message.sentAt)}
         </span>

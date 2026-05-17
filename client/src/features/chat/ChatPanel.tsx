@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import type { Room } from 'livekit-client'
 import { useChatMessages } from '../../hooks/useChatMessages'
 import { ChatMessageList } from './ChatMessageList'
 import { ChatComposer } from './ChatComposer'
+import type { ChatMessage } from '../../types'
 
 interface ChatPanelProps {
   room: Room | null
@@ -16,6 +18,8 @@ interface ChatPanelProps {
   isStreaming?: boolean
   /** Whether to send a join announcement when connecting */
   announceJoin?: boolean
+  /** Additional messages to display alongside the chat (e.g. AI bot messages published by this client) */
+  externalMessages?: ChatMessage[]
 }
 
 export function ChatPanel({
@@ -28,11 +32,17 @@ export function ChatPanel({
   onRequestUsername,
   isStreaming,
   announceJoin,
+  externalMessages,
 }: ChatPanelProps) {
   const { messages, sendMessage } = useChatMessages(room, role, identity, senderName, {
     isStreaming,
     announceJoin,
   })
+
+  const allMessages = useMemo(() => {
+    if (!externalMessages || externalMessages.length === 0) return messages
+    return [...messages, ...externalMessages].sort((a, b) => a.sentAt - b.sentAt)
+  }, [messages, externalMessages])
 
   return (
     <div
@@ -50,8 +60,8 @@ export function ChatPanel({
       >
         <div className="flex items-center gap-2">
           <span className="font-semibold text-white/80 text-sm">Live Chat</span>
-          {isConnected && messages.length > 0 && (
-            <span className="text-white/25 text-xs">{messages.length}</span>
+          {isConnected && allMessages.length > 0 && (
+            <span className="text-white/25 text-xs">{allMessages.length}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -70,7 +80,7 @@ export function ChatPanel({
         </div>
       </div>
 
-      <ChatMessageList messages={messages} localSenderId={identity} />
+      <ChatMessageList messages={allMessages} localSenderId={identity} />
       {onRequestUsername ? (
         <div
           className="flex-shrink-0 px-3 py-3"

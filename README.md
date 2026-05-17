@@ -2,6 +2,8 @@
 
 A live streaming app with real-time video, low-latency playback, and chat. Built with React, LiveKit, and Express.
 
+**Full project history, architecture, and version scope** (V1–V3 + follow-ups): see **[PROJECT.md](./PROJECT.md)**.
+
 ## Stack
 
 - **Frontend** — React + TypeScript + Vite + Tailwind CSS
@@ -13,9 +15,10 @@ A live streaming app with real-time video, low-latency playback, and chat. Built
 
 | Route | Description |
 |-------|-------------|
-| `/` | Landing page |
+| `/` | Landing page — hero + **Live now** directory |
 | `/broadcast` | Broadcaster page — camera preview, go live, controls, chat |
-| `/watch` | Viewer page — live player, connection quality, latency, chat |
+| `/watch/:username` | Viewer page for that streamer — player, quality, latency, chat |
+| `/watch` | Redirects to `/` (use directory or a direct watch link) |
 
 ## Prerequisites
 
@@ -45,6 +48,10 @@ LIVEKIT_API_SECRET=your_livekit_api_secret
 LIVEKIT_URL=wss://your-project.livekit.cloud
 CLIENT_URL=http://localhost:5173
 ROOM_NAME=chaturbrah-main
+
+# AI Chatters (optional — feature is disabled when AI_CHATTERS_ENABLED is not "true")
+OPENAI_API_KEY=sk-...
+AI_CHATTERS_ENABLED=true
 ```
 
 Get your API key and secret from the [LiveKit Cloud dashboard](https://cloud.livekit.io) under **Settings → Keys**.
@@ -89,19 +96,59 @@ cd server && npx tsc --noEmit
 cd client && npm run build
 ```
 
+## Debugging AI Chatters locally
+
+The client always logs three events to the browser console — no env vars needed:
+
+```
+[AI Chatters] Started
+[AI Chatters] Heard: "hey everyone, welcome to my stream"
+[AI Chatters] Stopped
+```
+
+"Heard" is whatever Whisper transcribed from the last audio chunk. If you talk and no "Heard" line appears, either the silence gate filtered it (nothing above the RMS threshold) or the transcript was too short / a known silence phrase.
+
+For deeper server-side inspection add this to `server/.env`:
+
+```env
+AI_CHATTERS_DEBUG=true
+```
+
+Server logs (prefixed `[AI_CHATTERS_DEBUG]`) will then show:
+- Incoming request fields (roomName, streamerName, audio size, mimeType)
+- Raw Whisper transcript and any filter reason (too short, silence phrase, empty)
+- GPT prompt, raw model response, and final message count
+
 ## Architecture
 
 ```
 browser
-  └── POST /token (role=broadcaster|viewer)
+  └── GET /streams, POST /streams/start, DELETE /streams/:user, POST /streams/:user/heartbeat
+  └── POST /token (role=broadcaster|viewer|preview, roomName=streamer username)
         └── server (Express) → LiveKit SDK → JWT
-  └── WebRTC connection → LiveKit Cloud
+  └── WebRTC connection → LiveKit Cloud (per-streamer room)
         ├── broadcaster: publishes video + audio + data
-        └── viewer: subscribes to tracks + data
+        ├── viewer: subscribes + data (chat, announces, ping/pong)
+        └── preview: subscribe-only thumbnail bot (no data, not counted as viewer)
 
 Chat uses LiveKit data messages (no separate WebSocket server).
 Latency is measured via broadcaster→viewer ping/pong data messages.
 ```
+
+## AI Chatters
+
+When enabled, the broadcaster can activate fake bot chatters that react to what they say out loud.
+
+```
+Broadcaster mic (MediaRecorder, ~8s chunks)
+  └── POST /ai-chatters/respond  { audio, roomName, streamerName }
+        └── OpenAI Whisper → transcript
+        └── OpenAI GPT → 0–3 bot messages (BufferingBrad, CringeGoblin42, ModMom, PixelGremlin, TotallyRealViewer)
+  └── Broadcaster client publishes messages as type: "chat" over LiveKit DataChannel
+        └── All viewers receive via existing useChatMessages DataReceived handler
+```
+
+Bot messages render like normal viewer messages with a subtle `AI` badge. The OpenAI API key is never exposed to the browser. Set `AI_CHATTERS_ENABLED=true` in `server/.env` to activate the feature.
 
 ## Deployment
 
@@ -120,6 +167,7 @@ Latency is measured via broadcaster→viewer ping/pong data messages.
 
 ## Notes
 
-- v1 uses a single fixed room (`chaturbrah-main`) — no accounts, no auth
-- Chat is ephemeral — messages are client-side only and not persisted
-- Only one broadcaster at a time is supported in v1
+- **Rooms** are per streamer username; `ROOM_NAME` in `.env` is only a **fallback** when the client omits `roomName`.
+- **No real auth** — local username in `localStorage` (see `PROJECT.md`).
+- Chat is ephemeral — not persisted server-side.
+- **One registered live stream per username** on the API registry; LiveKit still enforces “don’t steal publish” per room via the in-app guard.

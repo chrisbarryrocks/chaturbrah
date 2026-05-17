@@ -3,6 +3,8 @@ import type { Room } from 'livekit-client'
 import { AppLayout } from '../components/AppLayout'
 import { UsernameModal } from '../components/UsernameModal'
 import { BroadcasterControls } from '../features/broadcast/BroadcasterControls'
+import { AiChattersToggle } from '../features/broadcast/AiChattersToggle'
+import { useAiChatters } from '../features/broadcast/useAiChatters'
 import { ChatPanel } from '../features/chat/ChatPanel'
 import { useRoomConnection } from '../hooks/useRoomConnection'
 import { useLatencyIndicator } from '../hooks/useLatencyIndicator'
@@ -17,11 +19,27 @@ export function BroadcastPage() {
     useRoomConnection('broadcaster', roomName)
 
   const [isStreaming, setIsStreaming] = useState(false)
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
   const latency = useLatencyIndicator(room, 'broadcaster')
   const [identity] = useState(() => `broadcaster-${Date.now()}`)
   const connectRef = useRef(connect)
   connectRef.current = connect
   const didConnectRef = useRef(false)
+
+  const {
+    isAiChattersActive,
+    isAiChattersLoading,
+    aiChattersError,
+    startAiChatters,
+    stopAiChatters,
+    botMessages,
+  } = useAiChatters({
+    room,
+    roomName: username ?? '',
+    streamerName: username ?? '',
+    isStreaming,
+    audioStream,
+  })
 
   // Only connect once we have a username (room name)
   useEffect(() => {
@@ -159,7 +177,18 @@ export function BroadcastPage() {
             onGoLive={handleGoLive}
             onEndStream={handleEndStream}
             onStreamingChange={handleStreamingChange}
+            onAudioStreamReady={setAudioStream}
             goLiveDisabled={hasRemoteBroadcaster}
+          />
+
+          {/* AI Chatters */}
+          <AiChattersToggle
+            isActive={isAiChattersActive}
+            isLoading={isAiChattersLoading}
+            isDisabled={!isStreaming}
+            error={aiChattersError}
+            onStart={startAiChatters}
+            onStop={stopAiChatters}
           />
         </div>
 
@@ -177,6 +206,7 @@ export function BroadcastPage() {
               isConnected={isConnected}
               isStreaming={isStreaming}
               announceJoin
+              externalMessages={botMessages}
             />
           </div>
         </div>
